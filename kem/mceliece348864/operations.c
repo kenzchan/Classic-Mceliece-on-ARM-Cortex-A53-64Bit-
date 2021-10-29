@@ -25,8 +25,7 @@ static inline uint32_t ccnt_read (void)
   return cc;
 }
 */
-// 679850
-int crypto_kem_enc(
+int crypto_kem_enc( //524142
        unsigned char *c,
        unsigned char *key,
        const unsigned char *pk
@@ -59,7 +58,7 @@ int crypto_kem_enc(
 	return 0;
 }
 
-int crypto_kem_dec(
+int crypto_kem_dec( //1551611
        unsigned char *key,
        const unsigned char *c,
        const unsigned char *sk
@@ -105,7 +104,7 @@ int crypto_kem_dec(
 	return 0;
 }
 
-int crypto_kem_keypair
+int crypto_kem_keypair //586654955
 (
        unsigned char *pk,
        unsigned char *sk 
