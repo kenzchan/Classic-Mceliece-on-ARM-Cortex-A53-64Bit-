@@ -21,6 +21,10 @@ void	fprintBstr(FILE *fp, char *S, unsigned char *A, unsigned long long L);
 unsigned char entropy_input[48];
 unsigned char seed[KATNUM][48];
 
+
+uint32_t transpose128_count;
+uint32_t transpose128_time_count;
+
 static inline u_int32_t ccnt_read (void)
 {
   uint32_t cc = 0;
@@ -65,14 +69,16 @@ main()
         return KAT_FILE_OPEN_ERROR;
 
     fprintf(fp_rsp, "# kem/%s\n\n", crypto_kem_PRIMITIVE);
-    uint32_t cccount = 0;
+    //uint32_t cccount = 0;
 
     for (i=0; i<KATNUM; i++) {
-        uint32_t diff = 0;
-        uint32_t t0 = ccnt_read();
-        uint32_t t1 = ccnt_read();
-        diff = t1-t0;  
-        fprintf(stderr,"%u\n", t1-t0);
+        transpose128_count = 0;
+        transpose128_time_count = 0;
+        //uint32_t diff = 0;
+        //uint32_t t0 = ccnt_read();
+        //uint32_t t1 = ccnt_read();
+        //diff = t1-t0;  
+        //fprintf(stderr,"%u\n", t1-t0);
         if (!ct) ct = malloc(crypto_kem_CIPHERTEXTBYTES);
         if (!ct) abort();
         if (!ss) ss = malloc(crypto_kem_BYTES);
@@ -114,12 +120,14 @@ main()
             fprintf(stderr, "crypto_kem_dec returned bad 'ss' value\n");
             return KAT_CRYPTO_FAILURE;
         }
-        t1 = ccnt_read();
-        fprintf(stderr, "%u\n", t1-t0);
-        diff = t1-t0 - diff;
-        cccount += diff;
+        //t1 = ccnt_read();
+        //fprintf(stderr, "%u\n", t1-t0);
+        //diff = t1-t0 - diff;
+        //cccount += diff;
+        fprintf(stderr, "%u\n", transpose128_time_count/transpose128_count);
+
     }
-    fprintf(stderr, "%u\n", cccount/10);
+    //fprintf(stderr, "%u\n", transpose128_time_count/transpose128_count);
 
     return KAT_SUCCESS;
 }
