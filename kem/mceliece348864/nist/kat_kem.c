@@ -21,9 +21,9 @@ void	fprintBstr(FILE *fp, char *S, unsigned char *A, unsigned long long L);
 unsigned char entropy_input[48];
 unsigned char seed[KATNUM][48];
 
-
-uint32_t transpose128_count;
-uint32_t transpose128_time_count;
+//Time counter
+//uint32_t transpose128_count;
+//uint32_t transpose128_time_count;
 
 static inline u_int32_t ccnt_read (void)
 {
@@ -72,8 +72,9 @@ main()
     //uint32_t cccount = 0;
 
     for (i=0; i<KATNUM; i++) {
-        transpose128_count = 0;
-        transpose128_time_count = 0;
+	//initial time counter
+        //transpose128_count = 0;
+        //transpose128_time_count = 0;
         //uint32_t diff = 0;
         //uint32_t t0 = ccnt_read();
         //uint32_t t1 = ccnt_read();
@@ -124,7 +125,8 @@ main()
         //fprintf(stderr, "%u\n", t1-t0);
         //diff = t1-t0 - diff;
         //cccount += diff;
-        fprintf(stderr, "%u\n", transpose128_time_count/transpose128_count);
+	//Print time
+        //fprintf(stderr, "%u\n", transpose128_time_count/transpose128_count);
 
     }
     //fprintf(stderr, "%u\n", transpose128_time_count/transpose128_count);
