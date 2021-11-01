@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <assert.h>
 
+/*
 extern uint32_t transpose128_time_count;
 extern uint32_t transpose128_count;
 
@@ -30,6 +31,10 @@ static inline uint32_t ccnt_read (void)
   __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
   return cc;
 }
+*/
+
+
+
 
 static void update_8(uint64_t *in, gf e)
 {	
@@ -51,24 +56,28 @@ static void update_16(uint64_t (*in)[2], gf e)
 	}
 }
 
-static inline gf vec_reduce(vec *in){ //69
-	uint8x8_t tmp;
+
+static inline gf vec_reduce(vec *in){
+	uint16x4_t tmp1;
+	uint32x2_t tmp2;
+	uint64x1_t tmp3;
+
 	gf ret = 0;
 
-	for(int i = GFBITS-1; i >= 0; i--){
-		tmp = vreinterpret_u8_u64(in[i]);
-		tmp ^= vrev64_u8(tmp);
-		tmp ^= vrev32_u8(tmp);
-		tmp ^= vrev16_u8(tmp);
-		ret ^= (vcnt_u8(tmp)[7]&1);
-
-		if( i == 0){
-			break;
-		}
+	for(int i = GFBITS-1; i > 0; i--){
+		tmp1 = vpaddl_u8(vcnt_u8(vreinterpret_u8_u64(in[i])));
+		tmp2 = vpaddl_u16(tmp1);
+		tmp3 = vpaddl_u32(tmp2);
+		ret ^= (tmp3&1);
 		ret <<= 1;
 	}
+	tmp1 = vpaddl_u8(vcnt_u8(vreinterpret_u8_u64(in[0])));
+	tmp2 = vpaddl_u16(tmp1);
+	tmp3 = vpaddl_u32(tmp2);
+	ret ^= (tmp3&1);
 	return ret;
 }
+
 
 static inline uint64_t mask_nonzero(gf a)
 {
@@ -227,8 +236,13 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 
 		update_8(in_tmp, coefs[N]);
 
+		//uint32_t t0 = ccnt_read();
 
 		d = vec_reduce(prod);
+
+		//uint32_t t1 = ccnt_read();
+	  //transpose128_time_count += t1-t0;
+	  //transpose128_count += 1;
 		//fprintf(stderr, "Error after_syndrome\n");
 
 		t = gf_mul2(c0, coefs[N], b);
@@ -249,11 +263,13 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 
 		vec_cmov(BC, mask);
 
-		uint32_t t0 = ccnt_read();
+		//uint32_t t0 = ccnt_read();
+
 		update_16(BC, mask & c0);
-		uint32_t t1 = ccnt_read();
-	  transpose128_time_count += t1-t0;
-	  transpose128_count += 1;
+
+		//uint32_t t1 = ccnt_read();
+	  //transpose128_time_count += t1-t0;
+	  //transpose128_count += 1;
 
 		for (i = 0; i < GFBITS; i++) 
 			BC[i][1] = BC_tmp[i][0] ^ BC_tmp[i][1];
