@@ -36,6 +36,7 @@ static inline uint32_t ccnt_read (void)
 
 
 
+
 static void update_8(uint64_t *in, gf e)
 {	
 	int i;
@@ -236,13 +237,7 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 
 		update_8(in_tmp, coefs[N]);
 
-		//uint32_t t0 = ccnt_read();
-
 		d = vec_reduce(prod);
-
-		//uint32_t t1 = ccnt_read();
-	  //transpose128_time_count += t1-t0;
-	  //transpose128_count += 1;
 		//fprintf(stderr, "Error after_syndrome\n");
 
 		t = gf_mul2(c0, coefs[N], b);
