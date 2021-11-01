@@ -21,7 +21,7 @@
 /* output: syndrome s */
 //extern void syndrome_asm(unsigned char *s, const unsigned char *pk, unsigned char *e);
 
-/*
+
 extern uint32_t transpose128_time_count;
 extern uint32_t transpose128_count;
 
@@ -32,11 +32,15 @@ static inline uint32_t ccnt_read (void)
   __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
   return cc;
 }
-*/
 
-static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //300309
+static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //2359
 {
 	int i, j;
+	uint8x16_t tmp1;
+	uint16x8_t tmp2;
+	uint32x4_t tmp3;
+	vec128 tmp4;
+
 	const unsigned char *e_prt = ((unsigned char *)(e + SYND_BYTES));
 
 	for (i = 0; i < SYND_BYTES; i++)
@@ -45,23 +49,23 @@ static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e
 	for (i = 0; i < PK_NROWS; i++)	
 	{
 		const unsigned char *pk_prt = ((unsigned char *)(pk + PK_ROW_BYTES * i));
-		uint8x16_t b = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		tmp1 = vdupq_n_u8(0);
 
 		for (j = 0; j < PK_NCOLS/128; j++){
-			b = veorq_u8(b, vandq_u8(vld1q_u8((e_prt + 16*j)), vld1q_u8((pk_prt + 16*j))));
+			tmp1 = veorq_u8(tmp1, vandq_u8(vld1q_u8((e_prt + 16*j)), vld1q_u8((pk_prt + 16*j))));
 		}
 
-		uint32x4_t tmp = vreinterpretq_u32_u8(b);
-		tmp[3] ^= ((uint32_t *) (pk_prt + 16*j))[0] & ((uint32_t *) (e_prt + 16*j))[0];
+		tmp3 = vreinterpretq_u32_u8(tmp1);
+		tmp3[3] ^= ((uint32_t *) (pk_prt + 16*j))[0] & ((uint32_t *) (e_prt + 16*j))[0];
 
-		b = vcntq_u8(vreinterpretq_u8_u32(tmp));
-		b = vaddq_u8(b, vrev32q_u8(b));
-		b = vaddq_u8(b, vrev16q_u8(b));
-		b = vaddq_u8(b, vrev64q_u8(b)); 
+		tmp2 = vpaddlq_u8(vcntq_u8(vreinterpretq_u8_u32(tmp3)));
+		tmp3 = vpaddlq_u16(tmp2);
+		tmp4 = vpaddlq_u32(tmp3);
 
-		s[ i/8 ] ^= (((b[0]^b[15])&1) << (i%8));
+		s[ i/8 ] ^= (((tmp4[0]^tmp4[1])&1) << (i%8));
 	}
 }
+
 
 /* output: e, an error vector of weight t */
 static void gen_e(unsigned char *e)
@@ -168,11 +172,11 @@ void encrypt(unsigned char *s, const unsigned char *pk, unsigned char *e)
     printf("\n");
   }
 #endif
-	//uint32_t t0 = ccnt_read();
+	uint32_t t0 = ccnt_read();
 	syndrome(s, pk, e);
-	//uint32_t t1 = ccnt_read();
-  //transpose128_time_count += t1-t0;
-  //transpose128_count += 1;
+	uint32_t t1 = ccnt_read();
+  transpose128_time_count += t1-t0;
+  transpose128_count += 1;
 	//fprintf(stderr, "Error after_syndrome\n");
 
 }
