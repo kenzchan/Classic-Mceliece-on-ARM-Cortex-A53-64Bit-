@@ -21,7 +21,7 @@
 /* output: syndrome s */
 //extern void syndrome_asm(unsigned char *s, const unsigned char *pk, unsigned char *e);
 
-
+/*
 extern uint32_t transpose128_time_count;
 extern uint32_t transpose128_count;
 
@@ -32,8 +32,10 @@ static inline uint32_t ccnt_read (void)
   __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
   return cc;
 }
+*/
 
-static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //2359
+
+static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //295567
 {
 	int i, j;
 	uint8x16_t tmp1;
@@ -68,7 +70,7 @@ static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e
 
 
 /* output: e, an error vector of weight t */
-static void gen_e(unsigned char *e)
+static void gen_e(unsigned char *e) //1223
 {
 	int i, j, eq, count;
 
@@ -88,19 +90,12 @@ static void gen_e(unsigned char *e)
 
 	while (1)
 	{
-		//fprintf(stderr, "Error whileloop\n");
-
-		//fprintf(stderr, "Error randombytes\n");
-
 		randombytes(buf.bytes, sizeof(buf));
-
-		//fprintf(stderr, "Error for1\n");
 
 		for (i = 0; i < SYS_T*2; i++)
 			buf.nums[i] = load_gf(buf.bytes + i*2);
 
 		// moving and counting indices in the correct range
-		//fprintf(stderr, "Error for2\n");
 		count = 0;
 		for (i = 0; i < SYS_T*2 && count < SYS_T; i++)
 			if (buf.nums[i] < SYS_N)
@@ -109,26 +104,16 @@ static void gen_e(unsigned char *e)
 		if (count < SYS_T) continue;
 
 		// check for repetition
-		//fprintf(stderr, "Error sort\n");
-
 		uint16_sort(ind, SYS_T);
-
-		//fprintf(stderr, "Error for3\n");
 
 		eq = 0;
 		for (i = 1; i < SYS_T; i++)
 			if (ind[i-1] == ind[i])
 				eq = 1;
-		//fprintf(stderr, "Error startif\n");
 
 		if (eq == 0)
 			break;
-
-		//fprintf(stderr, "Error end\n");
-
 	}
-	//fprintf(stderr, "Error outwhile\n");
-
 
 	for (j = 0; j < SYS_T; j++)
 		val[j] = one << (ind[j] & 63);
@@ -160,7 +145,13 @@ static void gen_e(unsigned char *e)
 
 void encrypt(unsigned char *s, const unsigned char *pk, unsigned char *e)
 {
+	//uint32_t t0 = ccnt_read();
 	gen_e(e);
+	//uint32_t t1 = ccnt_read();
+  //transpose128_time_count += t1-t0;
+  //transpose128_count += 1;
+
+  //fprintf(stderr, "sss %u \n", transpose128_time_count);
 
 #ifdef KAT
   {
@@ -172,11 +163,8 @@ void encrypt(unsigned char *s, const unsigned char *pk, unsigned char *e)
     printf("\n");
   }
 #endif
-	uint32_t t0 = ccnt_read();
 	syndrome(s, pk, e);
-	uint32_t t1 = ccnt_read();
-  transpose128_time_count += t1-t0;
-  transpose128_count += 1;
+
 	//fprintf(stderr, "Error after_syndrome\n");
 
 }
