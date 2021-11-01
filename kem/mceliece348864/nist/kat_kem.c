@@ -21,7 +21,7 @@ void	fprintBstr(FILE *fp, char *S, unsigned char *A, unsigned long long L);
 unsigned char entropy_input[48];
 unsigned char seed[KATNUM][48];
 
-//Time counter
+
 //uint32_t transpose128_count;
 //uint32_t transpose128_time_count;
 
@@ -72,7 +72,6 @@ main()
     //uint32_t cccount = 0;
 
     for (i=0; i<KATNUM; i++) {
-	//initial time counter
         //transpose128_count = 0;
         //transpose128_time_count = 0;
         //uint32_t diff = 0;
@@ -96,14 +95,29 @@ main()
         fprintf(fp_rsp, "count = %d\n", i);
         fprintBstr(fp_rsp, "seed = ", seed[i], 48);
         
-        if ( (ret_val = crypto_kem_keypair(pk, sk)) != 0) {
+        //uint32_t crypto_kem_keypair_time0 = ccnt_read();
+        ret_val = crypto_kem_keypair(pk, sk);
+        //uint32_t crypto_kem_keypair_time1 = ccnt_read();
+        //fprintf(stderr, "crypto_kem_keypair_time %u\n", crypto_kem_keypair_time1 - crypto_kem_keypair_time0);
+        //fprintf(stderr, "%u\n", crypto_kem_keypair_time1 - crypto_kem_keypair_time0);
+
+
+        if ( ret_val  != 0) {
             fprintf(stderr, "crypto_kem_keypair returned <%d>\n", ret_val);
             return KAT_CRYPTO_FAILURE;
         }
+
+
         fprintBstr(fp_rsp, "pk = ", pk, crypto_kem_PUBLICKEYBYTES);
         fprintBstr(fp_rsp, "sk = ", sk, crypto_kem_SECRETKEYBYTES);
-        
-        if ( (ret_val = crypto_kem_enc(ct, ss, pk)) != 0) {
+
+        //uint32_t crypto_kem_enc_time0 = ccnt_read();
+        ret_val = crypto_kem_enc(ct, ss, pk);
+        //uint32_t crypto_kem_enc_time1 = ccnt_read();
+        //fprintf(stderr, "crypto_kem_enc_time %u\n", crypto_kem_enc_time1 - crypto_kem_enc_time0);
+        //fprintf(stderr, "%u\n", crypto_kem_enc_time1 - crypto_kem_enc_time0);
+
+        if ( ret_val != 0) {
             fprintf(stderr, "crypto_kem_enc returned <%d>\n", ret_val);
             return KAT_CRYPTO_FAILURE;
         }
@@ -111,8 +125,14 @@ main()
         fprintBstr(fp_rsp, "ss = ", ss, crypto_kem_BYTES);
         
         fprintf(fp_rsp, "\n");
-        
-        if ( (ret_val = crypto_kem_dec(ss1, ct, sk)) != 0) {
+
+        uint32_t crypto_kem_dec_time0 = ccnt_read();
+        ret_val = crypto_kem_dec(ss1, ct, sk);
+        uint32_t crypto_kem_dec_time1 = ccnt_read();
+        //fprintf(stderr, "crypto_kem_dec_time %u\n", crypto_kem_dec_time1 - crypto_kem_dec_time0);
+        fprintf(stderr, "%u\n", crypto_kem_dec_time1 - crypto_kem_dec_time0);
+
+        if ( ret_val != 0) {
             fprintf(stderr, "crypto_kem_dec returned <%d>\n", ret_val);
             return KAT_CRYPTO_FAILURE;
         }
@@ -125,7 +145,6 @@ main()
         //fprintf(stderr, "%u\n", t1-t0);
         //diff = t1-t0 - diff;
         //cccount += diff;
-	//Print time
         //fprintf(stderr, "%u\n", transpose128_time_count/transpose128_count);
 
     }
