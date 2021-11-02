@@ -21,7 +21,7 @@
 /* output: syndrome s */
 //extern void syndrome_asm(unsigned char *s, const unsigned char *pk, unsigned char *e);
 
-/*
+
 extern uint32_t transpose128_time_count;
 extern uint32_t transpose128_count;
 
@@ -32,16 +32,97 @@ static inline uint32_t ccnt_read (void)
   __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
   return cc;
 }
-*/
 
 
-static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //295567
+
+static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //294219
 {
 	int i, j;
-	uint8x16_t tmp1;
+	uint32x4_t tmp1;
 	uint16x8_t tmp2;
-	uint32x4_t tmp3;
 	vec128 tmp4;
+	uint64_t tmp5;
+
+	const uint32_t *e_prt = ((uint32_t *)(e + SYND_BYTES));
+
+	for (i = 0; i < SYND_BYTES; i++)
+		s[i] = e[i];
+
+	for (i = 0; i < PK_NROWS; i++)	
+	{
+
+		const uint32_t *pk_prt = ((uint32_t *)(pk + PK_ROW_BYTES * i));
+		tmp1 = vandq_u32(vld1q_u32(e_prt), vld1q_u32(pk_prt));
+
+
+		for (j = 1; j < PK_NCOLS/128; j++){
+
+			uint32x4_t e = vld1q_u32(e_prt + 4*j);
+			uint32x4_t p = vld1q_u32(pk_prt + 4*j);
+
+			tmp1 = veorq_u32(tmp1, vandq_u32(e, p));
+		}
+
+		tmp1[3] ^= (pk_prt + 4*j)[0] & (e_prt + 4*j)[0];
+
+		tmp2 = vpaddlq_u8(vcntq_u8(vreinterpretq_u8_u32(tmp1)));
+		tmp1 = vpaddlq_u16(tmp2);
+		tmp4 = vpaddlq_u32(tmp1);
+		tmp5 = vget_low_u64(tmp4)^vget_high_u64(tmp4);
+
+		s[ i/8 ] ^= ((tmp5 & 1) << (i%8));
+	}
+}
+
+/*
+static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //290024
+{
+	int i, j;
+	uint32x4_t tmp1;
+	uint16x8_t tmp2;
+	vec128 tmp4;
+	uint64_t tmp5;
+
+	const uint32_t *e_prt = ((uint32_t *)(e + SYND_BYTES));
+
+	for (i = 0; i < SYND_BYTES; i++)
+		s[i] = e[i];
+
+	for (i = 0; i < PK_NROWS; i++)	
+	{
+
+		const uint32_t *pk_prt = ((uint32_t *)(pk + PK_ROW_BYTES * i));
+		tmp1 = vandq_u32(vld1q_u32(e_prt), vld1q_u32(pk_prt));
+
+
+		for (j = 1; j < PK_NCOLS/128; j++){
+
+			uint32x4_t e = vld1q_u32(e_prt + 4*j);
+			uint32x4_t p = vld1q_u32(pk_prt + 4*j);
+
+			tmp1 = veorq_u32(tmp1, vandq_u32(e, p));
+		}
+
+		tmp1[3] ^= (pk_prt + 4*j)[0] & (e_prt + 4*j)[0];
+
+		tmp2 = vpaddlq_u8(vcntq_u8(vreinterpretq_u8_u32(tmp1)));
+		tmp1 = vpaddlq_u16(tmp2);
+		tmp4 = vpaddlq_u32(tmp1);
+		tmp5 = vget_low_u64(tmp4)^vget_high_u64(tmp4);
+
+		s[ i/8 ] ^= ((tmp5 & 1) << (i%8));
+	}
+}
+*/
+
+/*
+static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e) //297017
+{
+	int i, j;
+	uint8x8_t tmp1;
+	uint16x4_t tmp2;
+	uint32x2_t tmp3;
+	uint64_t tmp4;
 
 	const unsigned char *e_prt = ((unsigned char *)(e + SYND_BYTES));
 
@@ -51,22 +132,65 @@ static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e
 	for (i = 0; i < PK_NROWS; i++)	
 	{
 		const unsigned char *pk_prt = ((unsigned char *)(pk + PK_ROW_BYTES * i));
-		tmp1 = vdupq_n_u8(0);
+		tmp1 = vand_u8(vld1_u8((e_prt)), vld1_u8((pk_prt)));
 
-		for (j = 0; j < PK_NCOLS/128; j++){
-			tmp1 = veorq_u8(tmp1, vandq_u8(vld1q_u8((e_prt + 16*j)), vld1q_u8((pk_prt + 16*j))));
+		for (j = 1; j < PK_NCOLS/64; j++){
+			tmp1 = veor_u8(tmp1, vand_u8(vld1_u8((e_prt + 8*j)), vld1_u8((pk_prt + 8*j))));
 		}
 
-		tmp3 = vreinterpretq_u32_u8(tmp1);
-		tmp3[3] ^= ((uint32_t *) (pk_prt + 16*j))[0] & ((uint32_t *) (e_prt + 16*j))[0];
+		tmp3 = vreinterpret_u32_u8(tmp1);
+		tmp3[1] ^= ((uint32_t *) (pk_prt + 8*j))[0] & ((uint32_t *) (e_prt + 8*j))[0];
 
-		tmp2 = vpaddlq_u8(vcntq_u8(vreinterpretq_u8_u32(tmp3)));
-		tmp3 = vpaddlq_u16(tmp2);
-		tmp4 = vpaddlq_u32(tmp3);
+		tmp2 = vpaddl_u8(vcnt_u8(vreinterpret_u8_u32(tmp3)));
+		tmp3 = vpaddl_u16(tmp2);
+		tmp4 = vpaddl_u32(tmp3);
 
-		s[ i/8 ] ^= (((tmp4[0]^tmp4[1])&1) << (i%8));
+		s[ i/8 ] ^= ((tmp4&1) << (i%8));
 	}
 }
+*/
+
+
+/* input: public key pk, error vector e */
+/* output: syndrome s */
+/*
+static void syndrome(unsigned char *s, const unsigned char *pk, unsigned char *e)
+{
+	unsigned char b, row[SYS_N/8];
+	const unsigned char *pk_ptr = pk;
+
+	int i, j;
+
+	for (i = 0; i < SYND_BYTES; i++)
+		s[i] = 0;
+
+	for (i = 0; i < PK_NROWS; i++)	
+	{
+		for (j = 0; j < SYS_N/8; j++) 
+			row[j] = 0;
+
+		for (j = 0; j < PK_ROW_BYTES; j++) 
+			row[ SYS_N/8 - PK_ROW_BYTES + j ] = pk_ptr[j];
+
+		row[i/8] |= 1 << (i%8);
+		
+		b = 0;
+		for (j = 0; j < SYS_N/8; j++)
+			b ^= row[j] & e[j];
+
+		b ^= b >> 4;
+		b ^= b >> 2;
+		b ^= b >> 1;
+		b &= 1;
+
+		s[ i/8 ] |= (b << (i%8));
+
+		pk_ptr += PK_ROW_BYTES;
+	}
+}
+*/
+
+
 
 
 /* output: e, an error vector of weight t */
@@ -163,7 +287,13 @@ void encrypt(unsigned char *s, const unsigned char *pk, unsigned char *e)
     printf("\n");
   }
 #endif
+	uint32_t t0 = ccnt_read();
 	syndrome(s, pk, e);
+	uint32_t t1 = ccnt_read();
+  transpose128_time_count += t1-t0;
+  transpose128_count += 1;
+
+  //fprintf(stderr, "sss %u \n", transpose128_time_count);
 
 	//fprintf(stderr, "Error after_syndrome\n");
 
