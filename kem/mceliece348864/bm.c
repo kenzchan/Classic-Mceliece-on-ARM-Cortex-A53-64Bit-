@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-/*
+
 extern uint32_t transpose128_time_count;
 extern uint32_t transpose128_count;
 
@@ -31,7 +31,8 @@ static inline uint32_t ccnt_read (void)
   __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
   return cc;
 }
-*/
+
+
 
 
 
@@ -47,16 +48,15 @@ static void update_8(uint64_t *in, gf e)
 	}
 }
 
-static void update_16(uint64_t (*in)[2], gf e)
+static void update_16(vec128 *in, gf e)
 {	
 	int i;
 	vec tmp;
 	for (i = 0; i < GFBITS; i++){
 		tmp = (e >> i);
-		in[i][0] = (vshr_n_u64(in[i][0], 1)) | vshl_n_u64(tmp, 63);	
+		in[i] = vsetq_lane_u64((vshr_n_u64(in[i][0], 1)) | vshl_n_u64(tmp, 63), in[i], 0);	
 	}
 }
-
 
 static inline gf vec_reduce(vec *in){
 	uint16x4_t tmp1;
@@ -103,12 +103,15 @@ static inline uint64_t mask_leq(uint16_t a, uint16_t b)
 	return ret;
 }
 
-static void vec_cmov(uint64_t out[][2], uint64_t mask)
+static void vec_cmov(vec128 out[], uint64_t mask)
 {
 	int i;
 
 	for (i = 0; i < GFBITS; i++)
-		out[i][0] = (out[i][0] & ~mask) | (out[i][1] & mask);
+		out[i] = vsetq_lane_u64((vgetq_lane_u64(out[i],0) & ~mask) | (vgetq_lane_u64(out[i],1) & mask), out[i], 0); 
+
+
+		//out[i][0] = (out[i][0] & ~mask) | (out[i][1] & mask);
 }
 
 static inline void interleave(vec128 *in, int idx0, int idx1, vec128 *mask, int b)
@@ -193,7 +196,7 @@ static inline void get_coefs(gf *out, vec128 *in)
 
 /* input: in, sequence of field elements */
 /* output: out, minimal polynomial of in */
-void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
+void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ]) //362560
 {
 	uint16_t i;
 	uint16_t N, L;
@@ -201,9 +204,9 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 	uint64_t prod[ GFBITS ];
 	uint64_t in_tmp[ GFBITS ];
 
-	uint64_t db[ GFBITS ][ 2 ];
-	uint64_t BC_tmp[ GFBITS ][ 2 ];
-	uint64_t BC[ GFBITS ][ 2 ];
+	vec128 db[ GFBITS ]; // db[ GFBITS ][ 2 ]
+	vec128 BC_tmp[ GFBITS ];
+	vec128 BC[ GFBITS ]; //BC[ GFBITS ][2]
 
 	uint64_t mask, t;
 
@@ -212,12 +215,11 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 	gf coefs[SYS_T * 2];
 
 	// init
-
-	BC[0][1] = 0;
-	BC[0][0] = 1; BC[0][0] <<= 63;
+	BC[0] = vmovq_n_u64(0);
+	BC[0] = vsetq_lane_u64(0b1000000000000000000000000000000000000000000000000000000000000000, BC[0], 0);
 
 	for (i = 1; i < GFBITS; i++)
-		BC[i][0] = BC[i][1] = 0;
+		BC[i] = vmovq_n_u64(0);
 
 	b = 1;
 	L = 0;
@@ -234,11 +236,15 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 		// computing d
 
 		vec_mul_16(prod, in_tmp, BC);
-
 		update_8(in_tmp, coefs[N]);
 
+		//uint32_t t0 = ccnt_read();
+
 		d = vec_reduce(prod);
-		//fprintf(stderr, "Error after_syndrome\n");
+
+		//uint32_t t1 = ccnt_read();
+	  //transpose128_time_count += t1-t0;
+	  //transpose128_count += 1;
 
 		t = gf_mul2(c0, coefs[N], b);
 
@@ -250,24 +256,27 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 
 		for (i = 0; i < GFBITS; i++) 
 		{
-			db[i][0] = (d >> i) & 1; db[i][0] = -db[i][0];
-			db[i][1] = (b >> i) & 1; db[i][1] = -db[i][1];
+			db[i] = vsetq_lane_u64(-((d >> i) & 1), db[i], 0); 
+			//db[i][0] = -db[i][0];
+			db[i] = vsetq_lane_u64(-((b >> i) & 1), db[i], 1); 
 		}
 		
-		vec128_mul((vec128*) BC_tmp, (vec128*) db, (vec128*) BC);
+		vec128_mul(BC_tmp, db, BC);
 
 		vec_cmov(BC, mask);
 
 		//uint32_t t0 = ccnt_read();
 
 		update_16(BC, mask & c0);
-
 		//uint32_t t1 = ccnt_read();
 	  //transpose128_time_count += t1-t0;
 	  //transpose128_count += 1;
+		//fprintf(stderr, "Error after_syndrome\n");
+
 
 		for (i = 0; i < GFBITS; i++) 
-			BC[i][1] = BC_tmp[i][0] ^ BC_tmp[i][1];
+			BC[i] = vsetq_lane_u64(veor_u64(vgetq_lane_u64(BC_tmp[i],0), vgetq_lane_u64(BC_tmp[i],1)), BC[i],1);
+			//BC[i][1] = BC_tmp[i][0] ^ BC_tmp[i][1];
 
 		c0 = t >> 32; 
 		b = (d & mask) | (b & ~mask);

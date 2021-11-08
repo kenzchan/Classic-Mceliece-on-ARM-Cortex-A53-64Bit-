@@ -16,6 +16,21 @@
 #include <string.h>
 #include <stdio.h>
 
+/*
+extern uint32_t transpose128_time_count;
+extern uint32_t transpose128_count;
+
+
+static inline uint32_t ccnt_read (void)
+{
+  uint32_t cc = 0;
+  __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
+  return cc;
+}
+*/
+
+
+
 static void radix_conversions_tr(vec128 in[ GFBITS ])
 {
 	int i, j, k;
@@ -46,7 +61,9 @@ static void radix_conversions_tr(vec128 in[ GFBITS ])
 	for (j = 5; j >= 0; j--)
 	{
 
-		if (j < 5) vec128_mul(in, in, s[j]);
+		if (j < 5) {
+			vec128_mul(in, in, s[j]);
+		}
 
 		for (i = 0; i < GFBITS; i++)
 		for (k = j; k <= 4; k++)
@@ -75,7 +92,7 @@ static void butterflies_tr(vec128 out[ GFBITS ], vec128 in[][ GFBITS ])
 	uint64_t t[ GFBITS ];
 	uint64_t pre[6][ GFBITS ];
 
-	uint64_t out64[2][GFBITS];
+	//vec128 out64[GFBITS];
 
 	vec128 p2[ 6 ];
 	vec128 buf[64];
@@ -147,8 +164,9 @@ static void butterflies_tr(vec128 out[ GFBITS ], vec128 in[][ GFBITS ])
                         buf[ reversal[j+3] ] = vec128_set2x(vec128_extract(in[j/2+1][i+0], 1),
                                                             vec128_extract(in[j/2+1][i+1], 1));
                 }
-	
+
                 transpose_64x128_sp(buf);
+
 
 	
 		p2[0] = buf[32]; buf[33] = vec128_xor(buf[33], buf[32]);
@@ -222,31 +240,35 @@ static void butterflies_tr(vec128 out[ GFBITS ], vec128 in[][ GFBITS ])
 			pre[j][i+1] = vec128_extract(p2[j], 1);
 		}
 
-		out64[0][i+0] = vec128_extract(buf[0], 0);
-		out64[0][i+1] = vec128_extract(buf[0], 1);
+		out[i+0] = vsetq_lane_u64(vec128_extract(buf[0], 0),out[i+0], 0);
+		out[i+1] = vsetq_lane_u64(vec128_extract(buf[0], 1),out[i+1], 0);
 	}
 
 	//
 
 	for (j = 0; j < GFBITS; j++) { t[j] = (beta[0] >> j) & 1; t[j] = -t[j]; }
+	vec_mul_642128(out, pre[0], t);
 
-	vec_mul(out64[1], pre[0], t);
 
 	for (i = 1; i < 6; i++)
 	{
 		for (j = 0; j < GFBITS; j++) { t[j] = (beta[i] >> j) & 1; t[j] = -t[j]; }
-
 		vec_mul(t, pre[i], t);
-		vec_add(out64[1], out64[1], t);
+		//vec_add(out64[1], out64[1], t);
+		for (int b = 0; b < GFBITS; b++) 
+			out[b] = vsetq_lane_u64(vec128_extract(out[b],1) ^ t[b], out[b], 1);
 	}
-
-	for (b = 0; b < GFBITS; b++)
-		out[b] = vec128_set2x(out64[0][b], out64[1][b]);
 }
 	
 void fft_tr(vec128 out[GFBITS], vec128 in[][ GFBITS ])
 {
+	  //uint32_t t0 = ccnt_read();
+
 		butterflies_tr(out, in);
+
+	  //uint32_t t1 = ccnt_read();
+	  //transpose128_time_count += t1-t0;
+	  //transpose128_count += 1;
 		radix_conversions_tr(out);
 }
 

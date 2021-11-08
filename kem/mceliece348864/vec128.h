@@ -53,24 +53,15 @@ static inline vec128 vec128_setzero()
 }
 
 //#define vec128_extract(a, i) ((uint64_t) _mm_extract_epi64((vec128) (a), (i)))
-static inline uint64_t vec128_extract(vec128 a, int s) {
+static inline uint64_t vec128_extract(vec128 a, const int s) {
 	//fprintf(stderr, "Error vec128_extract\n");
-	return a[s];
+	return vgetq_lane_u64(a, s);
 }
 
 static inline int vec128_testz(vec128 a) 
 {
-	uint32x4_t zeros = {0, 0, 0, 0};
-
-	uint32x4_t tmp = vtstq_u32(vreinterpretq_u32_u64(a), zeros);
-
-	for (int j = 0; j < 4; j++){
-		if (tmp[j] != 0) {
-			return 0;
-		} 
-	}
+	if ((a[0] != 0) || (a[1] != 0)) return 0;
 	return 1;
-
 }
 
 static inline vec128 vec128_and(vec128 a, vec128 b) 

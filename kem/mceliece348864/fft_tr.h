@@ -12,7 +12,7 @@
 #include "vec128.h"
 
 void fft_tr(vec128 [GFBITS], vec128 [][ GFBITS ]);
-void print128_num(vec128 var);
+//void print128_num(vec128 var);
 
 #endif
 

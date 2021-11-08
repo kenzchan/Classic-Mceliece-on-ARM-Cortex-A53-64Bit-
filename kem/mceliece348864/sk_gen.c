@@ -12,6 +12,19 @@
 #include "vec.h"
 #include "gf.h"
 
+/*
+extern uint32_t transpose128_time_count;
+extern uint32_t transpose128_count;
+
+
+static inline uint32_t ccnt_read (void)
+{
+  uint32_t cc = 0;
+  __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
+  return cc;
+}
+*/
+
 /* input: v, a list of GF(2^m) elements in bitsliced form */
 /* input: idx, an index */
 /* return: the idx-th element in v */
@@ -86,8 +99,13 @@ int genpoly_gen(gf *out, gf *f)
 		}
 	}
 
-	for (i = 0; i < GFBITS; i++)
+	for (i = 0; i < GFBITS; i++){
+		//uint32_t t0 = ccnt_read();
 		transpose_64x64(buf[i]);
+		//uint32_t t1 = ccnt_read();
+  	//transpose128_time_count += t1-t0;
+  	//transpose128_count += 1;
+  	}
 	
 	for (j = 0; j < SYS_T; j++)
 	for (i = 0; i < GFBITS; i++)

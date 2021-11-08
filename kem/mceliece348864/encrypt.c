@@ -21,7 +21,7 @@
 /* output: syndrome s */
 //extern void syndrome_asm(unsigned char *s, const unsigned char *pk, unsigned char *e);
 
-
+/*
 extern uint32_t transpose128_time_count;
 extern uint32_t transpose128_count;
 
@@ -32,6 +32,7 @@ static inline uint32_t ccnt_read (void)
   __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
   return cc;
 }
+*/
 
 
 
@@ -287,11 +288,11 @@ void encrypt(unsigned char *s, const unsigned char *pk, unsigned char *e)
     printf("\n");
   }
 #endif
-	uint32_t t0 = ccnt_read();
+	//uint32_t t0 = ccnt_read();
 	syndrome(s, pk, e);
-	uint32_t t1 = ccnt_read();
-  transpose128_time_count += t1-t0;
-  transpose128_count += 1;
+	//uint32_t t1 = ccnt_read();
+  //transpose128_time_count += t1-t0;
+  //transpose128_count += 1;
 
   //fprintf(stderr, "sss %u \n", transpose128_time_count);
 

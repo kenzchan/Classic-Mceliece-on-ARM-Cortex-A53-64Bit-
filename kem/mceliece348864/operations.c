@@ -31,15 +31,19 @@ int crypto_kem_enc( //524142
        const unsigned char *pk
 )
 {
+
 	unsigned char two_e[ 1 + SYS_N/8 ] = {2};
 	unsigned char *e = two_e + 1;
 	unsigned char one_ec[ 1 + SYS_N/8 + (SYND_BYTES + 32) ] = {1};
 
 	//
-	//fprintf(stderr, "Error encrypt\n");
 	//uint32_t t0 = ccnt_read();
+	//fprintf(stderr, "Error encrypt\n");
 	encrypt(c, pk, e);
 	//uint32_t t1 = ccnt_read();
+  	//transpose128_time_count += t1-t0;
+  	//transpose128_count += 1;
+
 
 	//fprintf(stderr, "Error crypto_hash_32b\n");
 	crypto_hash_32b(c + SYND_BYTES, two_e, sizeof(two_e)); 
@@ -51,9 +55,6 @@ int crypto_kem_enc( //524142
 	//fprintf(stderr, "Error crypto_hash_32b\n");
 	crypto_hash_32b(key, one_ec, sizeof(one_ec));
 	//fprintf(stderr, "Error crypto_kem_enc\n");
-
-  	//transpose128_time_count += t1-t0;
-  	//transpose128_count += 1;
 
 	return 0;
 }

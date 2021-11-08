@@ -7,10 +7,35 @@
 #include "gf.h"
 
 #include <stdint.h>
+#include <arm_neon.h>
 
 typedef uint64_t vec;
+typedef uint64x2_t vec128;
+
 
 //extern void vec_mul_asm(vec *, const vec *, const vec *, int);
+
+static inline void vec_mul_642128(vec128 * h, const vec * f, const vec * g)
+{
+	int i, j;
+	vec buf[ 2*GFBITS-1 ];
+
+	for (i = 0; i < 2*GFBITS-1; i++)
+		buf[i] = 0;
+
+	for (i = 0; i < GFBITS; i++)
+	for (j = 0; j < GFBITS; j++)
+		buf[i+j] ^= f[i] & g[j];
+		
+	for (i = 2*GFBITS-2; i >= GFBITS; i--)
+	{
+		buf[i-GFBITS+3] ^= buf[i]; 
+		buf[i-GFBITS+0] ^= buf[i]; 
+	}
+
+	for (i = 0; i < GFBITS; i++)
+		h[i] = vsetq_lane_u64(buf[i], h[i], 1);
+}
 
 
 static inline void vec_mul(vec * h, const vec * f, const vec * g)
@@ -35,7 +60,7 @@ static inline void vec_mul(vec * h, const vec * f, const vec * g)
 		h[i] = buf[i];
 }
 
-static inline void vec_mul_16(vec * h, const vec * f, const vec (*g)[2])
+static inline void vec_mul_16(vec * h, const vec * f, const vec128 *g)
 {
 	int i, j;
 	vec buf[ 2*GFBITS-1 ];
@@ -45,7 +70,7 @@ static inline void vec_mul_16(vec * h, const vec * f, const vec (*g)[2])
 
 	for (i = 0; i < GFBITS; i++)
 	for (j = 0; j < GFBITS; j++)
-		buf[i+j] ^= f[i] & g[j][1];
+		buf[i+j] ^= f[i] & vgetq_lane_u64(g[j], 1);
 		
 	for (i = 2*GFBITS-2; i >= GFBITS; i--)
 	{
@@ -56,6 +81,14 @@ static inline void vec_mul_16(vec * h, const vec * f, const vec (*g)[2])
 	for (i = 0; i < GFBITS; i++)
 		h[i] = buf[i];
 }
+
+/*
+
+static inline void vec_mul(vec *h, const vec *f, const vec *g)
+{	
+	vec_mul_asm(h, f, g, 8);
+}
+*/
 
 static inline void vec_add(vec *h, vec *f, vec *g) 
 {
