@@ -20,87 +20,118 @@
 #include <stdint.h>
 #include <assert.h>
 
+extern uint64_t transpose128_time_count;
+extern uint64_t transpose128_count;
 /*
-extern uint32_t transpose128_time_count;
-extern uint32_t transpose128_count;
-
-
-static inline uint32_t ccnt_read (void)
+static inline uint64_t ccnt_read()
 {
-  uint32_t cc = 0;
-  __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
-  return cc;
+  uint64_t t = 0;
+  asm volatile("mrs %0, PMCCNTR_EL0":"=r"(t));
+  return t;
 }
 */
 
-
-
-
-
-static void update_8(uint64_t *in, gf e)
+static void update_8(uint64x1_t *in, gf e)
 {	
 	int i;
-	vec tmp;
+	union vec64x1
+	{
+		uint64_t c;
+		uint64x1_t neon;
+	};
+
+	union vec64x1 tmp;
+
 	for (i = 0; i < GFBITS; i++){
-		tmp = (e >> i);
-		in[i] = (vshr_n_u64(in[i], 1)) | vshl_n_u64(tmp, 63);	
+		tmp.c = (e >> i);
+		in[i] = (vshr_n_u64(in[i], 1)) | vshl_n_u64(tmp.neon, 63);	
 	}
 }
 
-static void update_16(uint64_t (*in)[2], gf e)
+static void update_16(uint64x1_t (*in)[2], gf e)
 {	
 	int i;
-	vec tmp;
+
+	union vec64x1
+	{
+		uint64_t c;
+		uint64x1_t neon;
+	};
+
+	union vec64x1 tmp;
+
 	for (i = 0; i < GFBITS; i++){
-		tmp = (e >> i);
-		in[i][0] = (vshr_n_u64(in[i][0], 1)) | vshl_n_u64(tmp, 63);	
+		tmp.c = (e >> i);
+		in[i][0] = (vshr_n_u64(in[i][0], 1)) | vshl_n_u64(tmp.neon, 63);	
 	}
 }
 
+static inline gf vec_reduce(uint64x1_t *in){
+	union vec64x1
+	{
+		uint64_t c;
+		uint64x1_t neon;
+	};
 
-static inline gf vec_reduce(vec *in){
+	union vec64x1 tmp3;
+
 	uint16x4_t tmp1;
 	uint32x2_t tmp2;
-	uint64x1_t tmp3;
+	//uint64x1_t tmp3;
 
 	gf ret = 0;
 
 	for(int i = GFBITS-1; i > 0; i--){
 		tmp1 = vpaddl_u8(vcnt_u8(vreinterpret_u8_u64(in[i])));
 		tmp2 = vpaddl_u16(tmp1);
-		tmp3 = vpaddl_u32(tmp2);
-		ret ^= (tmp3&1);
+		tmp3.neon = vpaddl_u32(tmp2);
+		ret ^= (tmp3.c&1);
 		ret <<= 1;
 	}
 	tmp1 = vpaddl_u8(vcnt_u8(vreinterpret_u8_u64(in[0])));
 	tmp2 = vpaddl_u16(tmp1);
-	tmp3 = vpaddl_u32(tmp2);
-	ret ^= (tmp3&1);
+	tmp3.neon = vpaddl_u32(tmp2);
+	ret ^= (tmp3.c&1);
 	return ret;
 }
 
-
 static inline uint64_t mask_nonzero(gf a)
 {
-	uint64_t ret = a;
+	//uint64_t ret = a;
+	union vec64x1
+	{
+		uint64_t c;
+		uint64x1_t neon;
+	};
 
-	ret -= 1;
-	ret = vshr_n_u64(ret, 63);
-	ret -= 1;
+	union vec64x1 ret;
+	ret.c = a;
+	ret.c -= 1;
+	ret.neon = vshr_n_u64(ret.neon, 63);
+	ret.c -= 1;
 
-	return ret;
+	return ret.c;
 }
 
 static inline uint64_t mask_leq(uint16_t a, uint16_t b)
 {
 	uint64_t a_tmp = a;
 	uint64_t b_tmp = b;
-	uint64_t ret = b_tmp - a_tmp; 
 
-	ret = vshr_n_u64(ret, 63);
-	ret -= 1;
+	union vec64x1
+	{
+		uint64_t c;
+		uint64x1_t neon;
+	};
 
-	return ret;
+	union vec64x1 ret;
+
+	ret.c = b_tmp - a_tmp; 
+
+	ret.neon = vshr_n_u64(ret.neon, 63);
+	ret.c -= 1;
+
+	return ret.c;
 }
 
 static void vec_cmov(uint64_t out[][2], uint64_t mask)
@@ -198,12 +229,28 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 	uint16_t i;
 	uint16_t N, L;
 
-	uint64_t prod[ GFBITS ];
-	uint64_t in_tmp[ GFBITS ];
+	union
+	{
+		uint64_t c_p[ GFBITS ];
+		uint64x1_t neon_p[ GFBITS ];
+	} prod;
+
+	union
+	{
+		uint64_t c[ GFBITS ];
+		uint64x1_t neon[ GFBITS ];
+	} in_tmp;
 
 	uint64_t db[ GFBITS ][ 2 ];
 	uint64_t BC_tmp[ GFBITS ][ 2 ];
-	uint64_t BC[ GFBITS ][ 2 ];
+
+	union
+	{
+		uint64_t c_BC[ GFBITS ][ 2 ];
+		uint64x1_t neon_BC[ GFBITS ][ 2 ];
+	} BC;
+
+	//uint64_t BC[ GFBITS ][ 2 ];
 
 	uint64_t mask, t;
 
@@ -213,11 +260,11 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 
 	// init
 
-	BC[0][1] = 0;
-	BC[0][0] = 1; BC[0][0] <<= 63;
+	BC.c_BC[0][1] = 0;
+	BC.c_BC[0][0] = 1; BC.c_BC[0][0] <<= 63;
 
 	for (i = 1; i < GFBITS; i++)
-		BC[i][0] = BC[i][1] = 0;
+		BC.c_BC[i][0] = BC.c_BC[i][1] = 0;
 
 	b = 1;
 	L = 0;
@@ -227,18 +274,18 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 	get_coefs(coefs, in);
 
 	for (i = 0; i < GFBITS; i++)
-		in_tmp[i] = 0;
+		in_tmp.c[i] = 0;
 
 	for (N = 0; N < SYS_T * 2; N++)
 	{
 		// computing d
 
-		vec_mul_16(prod, in_tmp, BC);
-		update_8(in_tmp, coefs[N]);
+		vec_mul_16(prod.c_p, in_tmp.c, BC.c_BC);
+		update_8(in_tmp.neon, coefs[N]);
 
 		//uint32_t t0 = ccnt_read();
 
-		d = vec_reduce(prod);
+		d = vec_reduce(prod.neon_p);
 		//uint32_t t1 = ccnt_read();
 	  //transpose128_time_count += t1-t0;
 	  //transpose128_count += 1;
@@ -257,17 +304,20 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 			db[i][0] = (d >> i) & 1; db[i][0] = -db[i][0];
 			db[i][1] = (b >> i) & 1; db[i][1] = -db[i][1];
 		}
-		
-		vec128_mul((vec128*) BC_tmp, (vec128*) db, (vec128*) BC);
+		//uint32_t t0 = ccnt_read();
 
-		vec_cmov(BC, mask);
+		vec128_mul((vec128*) BC_tmp, (vec128*) db, (vec128*) BC.c_BC);
+		//uint32_t t1 = ccnt_read();
+	  //transpose128_time_count += t1-t0;
+	  //transpose128_count += 1;
+		vec_cmov(BC.c_BC, mask);
 
 
-		update_16(BC, mask & c0);
+		update_16(BC.neon_BC, mask & c0);
 
 
 		for (i = 0; i < GFBITS; i++) 
-			BC[i][1] = BC_tmp[i][0] ^ BC_tmp[i][1];
+			BC.c_BC[i][1] = BC_tmp[i][0] ^ BC_tmp[i][1];
 
 		c0 = t >> 32; 
 		b = (d & mask) | (b & ~mask);
@@ -279,6 +329,6 @@ void bm(uint64_t out[ GFBITS ], vec128 in[ GFBITS ])
 
 	for (i = 0; i < GFBITS; i++) { out[i] = (c0 >> i) & 1; out[i] = -out[i]; }
 
-	vec_mul_16(out, out, BC);
+	vec_mul_16(out, out, BC.c_BC);
 }
 

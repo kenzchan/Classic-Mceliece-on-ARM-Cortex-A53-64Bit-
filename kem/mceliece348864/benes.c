@@ -178,16 +178,22 @@ void load_bits(uint64_t out[][32], const unsigned char * bits)
 {
 	int i, low, block = 0;
 
-	uint64_t cond[64];
+	union 
+	{
+		uint64_t c[64];
+		uint64x1_t neon[64];
+	} cond;
+
+	//uint64_t cond[64];
 
 	//
 
 	for (low = 0; low <= 5; low++) 
 	{ 
-		for (i = 0; i < 64; i++) cond[i] = load4(bits + block*256 + i*4);
-		transpose_64x64(cond);
+		for (i = 0; i < 64; i++) cond.c[i] = load4(bits + block*256 + i*4);
+		transpose_64x64(cond.neon);
 
-		for (i = 0; i < 32; i++) out[ block ][i] = cond[i];
+		for (i = 0; i < 32; i++) out[ block ][i] = cond.c[i];
 		block++;
 	}
 	
@@ -205,10 +211,10 @@ void load_bits(uint64_t out[][32], const unsigned char * bits)
 
 	for (low = 5; low >= 0; low--) 
 	{ 
-		for (i = 0; i < 64; i++) cond[i] = load4(bits + block*256 + i*4);
-		transpose_64x64(cond);
+		for (i = 0; i < 64; i++) cond.c[i] = load4(bits + block*256 + i*4);
+		transpose_64x64(cond.neon);
 
-		for (i = 0; i < 32; i++) out[ block ][i] = cond[i];
+		for (i = 0; i < 32; i++) out[ block ][i] = cond.c[i];
 		block++;
 	}
 }
@@ -221,45 +227,55 @@ void benes(uint64_t * r, uint64_t cond[][32], int rev)
 {
 	int block, inc;
 
-	uint64_t *bs = r;
+	//uint64_t *bs = r;
+
+	union vec64x1
+	{
+		uint64_t * c;
+		uint64x1_t * neon;
+	};
+
+	union vec64x1 bs;
+
+	bs.c = r;
 
 	//
 
 	if (rev == 0) {block =  0; inc =  1;}
 	else          {block = 22; inc = -1;}
 
-	transpose_64x64(bs);
+	transpose_64x64(bs.neon);
 
-	layer_0(bs, cond[ block ]); block += inc;
-	layer_1(bs, cond[ block ]); block += inc;
-	layer_2(bs, cond[ block ]); block += inc;
-	layer_3(bs, cond[ block ]); block += inc;
-	layer_4(bs, cond[ block ]); block += inc;
-	layer_5(bs, cond[ block ]); block += inc;
+	layer_0(bs.c, cond[ block ]); block += inc;
+	layer_1(bs.c, cond[ block ]); block += inc;
+	layer_2(bs.c, cond[ block ]); block += inc;
+	layer_3(bs.c, cond[ block ]); block += inc;
+	layer_4(bs.c, cond[ block ]); block += inc;
+	layer_5(bs.c, cond[ block ]); block += inc;
 
-	transpose_64x64(bs);
+	transpose_64x64(bs.neon);
 	
-	layer_0(bs, cond[ block ]); block += inc;
-	layer_1(bs, cond[ block ]); block += inc;
-	layer_2(bs, cond[ block ]); block += inc;
-	layer_3(bs, cond[ block ]); block += inc;
-	layer_4(bs, cond[ block ]); block += inc;
-	layer_5(bs, cond[ block ]); block += inc;
-	layer_4(bs, cond[ block ]); block += inc;
-	layer_3(bs, cond[ block ]); block += inc;
-	layer_2(bs, cond[ block ]); block += inc;
-	layer_1(bs, cond[ block ]); block += inc;
-	layer_0(bs, cond[ block ]); block += inc;
+	layer_0(bs.c, cond[ block ]); block += inc;
+	layer_1(bs.c, cond[ block ]); block += inc;
+	layer_2(bs.c, cond[ block ]); block += inc;
+	layer_3(bs.c, cond[ block ]); block += inc;
+	layer_4(bs.c, cond[ block ]); block += inc;
+	layer_5(bs.c, cond[ block ]); block += inc;
+	layer_4(bs.c, cond[ block ]); block += inc;
+	layer_3(bs.c, cond[ block ]); block += inc;
+	layer_2(bs.c, cond[ block ]); block += inc;
+	layer_1(bs.c, cond[ block ]); block += inc;
+	layer_0(bs.c, cond[ block ]); block += inc;
 
-	transpose_64x64(bs);
+	transpose_64x64(bs.neon);
 	
-	layer_5(bs, cond[ block ]); block += inc;
-	layer_4(bs, cond[ block ]); block += inc;
-	layer_3(bs, cond[ block ]); block += inc;
-	layer_2(bs, cond[ block ]); block += inc;
-	layer_1(bs, cond[ block ]); block += inc;
-	layer_0(bs, cond[ block ]); block += inc;
+	layer_5(bs.c, cond[ block ]); block += inc;
+	layer_4(bs.c, cond[ block ]); block += inc;
+	layer_3(bs.c, cond[ block ]); block += inc;
+	layer_2(bs.c, cond[ block ]); block += inc;
+	layer_1(bs.c, cond[ block ]); block += inc;
+	layer_0(bs.c, cond[ block ]); block += inc;
 
-	transpose_64x64(bs);
+	transpose_64x64(bs.neon);
 }
 

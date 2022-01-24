@@ -11,15 +11,14 @@
 #include <stdint.h>
 
 /*
-extern uint32_t transpose128_time_count;
-extern uint32_t transpose128_count;
+extern uint64_t transpose128_time_count;
+extern uint64_t transpose128_count;
 
-
-static inline uint32_t ccnt_read (void)
+static inline uint64_t ccnt_read()
 {
-  uint32_t cc = 0;
-  __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
-  return cc;
+  uint64_t t = 0;
+  asm volatile("mrs %0, PMCCNTR_EL0":"=r"(t));
+  return t;
 }
 */
 
@@ -61,19 +60,18 @@ static inline void transpose_64x64(uint64_t * in) // 4094
 }
 */
 
-
-static inline void transpose_64x64(uint64_t * in) // 4094
+static void inline transpose_64x64(uint64x1_t * in) // 4094
 {
 	//uint32_t t0 = ccnt_read();
 
 	int i, j;
 
-	uint64_t tmp[64];
+	uint64x1_t tmp[64];
 
-	uint64_t masks[3][2] = {
-                        {0x5555555555555555, 0xAAAAAAAAAAAAAAAA},
-                        {0x3333333333333333, 0xCCCCCCCCCCCCCCCC},
-                        {0x0F0F0F0F0F0F0F0F, 0xF0F0F0F0F0F0F0F0},
+	uint64x1_t masks[3][2] = {
+                        {{0x5555555555555555}, {0xAAAAAAAAAAAAAAAA}},
+                        {{0x3333333333333333}, {0xCCCCCCCCCCCCCCCC}},
+                        {{0x0F0F0F0F0F0F0F0F}, {0xF0F0F0F0F0F0F0F0}},
                       };
 
 	// First round
@@ -142,11 +140,7 @@ static inline void transpose_64x64(uint64_t * in) // 4094
 		in[j] = (tmp[j] & masks[0][0]) | ((tmp[j+1] & masks[0][0]) << 1);
 		in[j+1] = ((tmp[j] & masks[0][1]) >> 1) | (tmp[j+1] & masks[0][1]);
 	}
-  //uint32_t t1 = ccnt_read();
-  //transpose128_time_count += t1-t0;
-  //transpose128_count += 1;
 }
-
 
 /*
 static inline void transpose_64x64(uint64_t * in)
@@ -361,6 +355,79 @@ static inline void transpose_64x128_sp(vec128 * in) // Neon
 }
 */
 
+
+static inline void transpose_64x128_sp(vec128 * in) // Neon
+{
+	//uint32_t t0 = ccnt_read();
+
+	int i, j, s, d;
+
+	vec128 x, y;
+	vec128 masks[3][2] = {
+	                        {{0x5555555555555555, 0x5555555555555555}, {0xAAAAAAAAAAAAAAAA, 0xAAAAAAAAAAAAAAAA}},
+	                        {{0x3333333333333333, 0x3333333333333333}, {0xCCCCCCCCCCCCCCCC, 0xCCCCCCCCCCCCCCCC}},
+	                        {{0x0F0F0F0F0F0F0F0F, 0x0F0F0F0F0F0F0F0F}, {0xF0F0F0F0F0F0F0F0, 0xF0F0F0F0F0F0F0F0}},
+	                       };
+	// First round
+	uint32x4x2_t tmp_32[32];
+	uint16x8x2_t tmp_16[32];
+
+	for (i = 0; i < 32; i++)
+		{
+			tmp_32[i] = vtrnq_u32(vreinterpretq_u32_u64(in[i]), vreinterpretq_u32_u64(in[i+32]));
+		}
+
+		// Second round
+		//s >>= 1;
+	for (i = 0; i < 16; i++)// s = 16
+		{
+			tmp_16[i] = vtrnq_u16(vreinterpretq_u16_u32(tmp_32[i].val[0]), vreinterpretq_u16_u32(tmp_32[i+16].val[0]));
+			tmp_16[i+16] = vtrnq_u16(vreinterpretq_u16_u32(tmp_32[i].val[1]), vreinterpretq_u16_u32(tmp_32[i+16].val[1]));
+		}
+
+		// Third round
+	for (i = 0; i < 8; i++)// s = 8
+		{
+			uint8x16x2_t tmp_8_0 = vtrnq_u8(vreinterpretq_u8_u16(tmp_16[i].val[0]), vreinterpretq_u8_u16(tmp_16[i+8].val[0]));
+			uint8x16x2_t tmp_8_1 = vtrnq_u8(vreinterpretq_u8_u16(tmp_16[i].val[1]), vreinterpretq_u8_u16(tmp_16[i+8].val[1]));
+
+			uint8x16x2_t tmp_8_2 = vtrnq_u8(vreinterpretq_u8_u16(tmp_16[16+i].val[0]), vreinterpretq_u8_u16(tmp_16[24+i].val[0]));
+			uint8x16x2_t tmp_8_3 = vtrnq_u8(vreinterpretq_u8_u16(tmp_16[16+i].val[1]), vreinterpretq_u8_u16(tmp_16[24+i].val[1]));
+
+
+			in[i] = vreinterpretq_u64_u8(tmp_8_0.val[0]);
+			in[8+i] = vreinterpretq_u64_u8(tmp_8_0.val[1]);
+
+			in[16+i] = vreinterpretq_u64_u8(tmp_8_1.val[0]);
+			in[24+i] = vreinterpretq_u64_u8(tmp_8_1.val[1]);
+
+			in[32+i] = vreinterpretq_u64_u8(tmp_8_2.val[0]);
+			in[40+i] = vreinterpretq_u64_u8(tmp_8_2.val[1]);
+
+			in[48+i] = vreinterpretq_u64_u8(tmp_8_3.val[0]);
+			in[56+i] = vreinterpretq_u64_u8(tmp_8_3.val[1]);
+		}
+	
+	//smaller than 8
+	
+	for (d = 2; d >= 0; d--)
+	{
+		s = 1 << d;
+
+		for (i = 0; i < 64; i += s*2)
+		for (j = i; j < i+s; j++)
+		{
+			x = (in[j] & masks[d][0]) | ((in[j+s] & masks[d][0]) << s);
+			y = ((in[j] & masks[d][1]) >> s) | (in[j+s] & masks[d][1]);
+
+			in[j+0] = x;
+			in[j+s] = y;
+		}
+	}
+}
+
+
+/*
 static inline void transpose_64x128_sp(vec128 * in) // Neon
 {
 	//uint32_t t0 = ccnt_read();
@@ -436,6 +503,9 @@ static inline void transpose_64x128_sp(vec128 * in) // Neon
   //transpose128_time_count += t1-t0;
   //transpose128_count += 1;
 }
+*/
+
+
 
 #endif
 

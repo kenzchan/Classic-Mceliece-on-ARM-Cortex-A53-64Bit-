@@ -14,17 +14,18 @@
 #include <string.h>
 
 /*
-extern uint32_t transpose128_time_count;
-extern uint32_t transpose128_count;
+extern uint64_t transpose128_time_count;
+extern uint64_t transpose128_count;
 
-
-static inline uint32_t ccnt_read (void)
+static inline uint64_t ccnt_read()
 {
-  uint32_t cc = 0;
-  __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
-  return cc;
+  uint64_t t = 0;
+  asm volatile("mrs %0, PMCCNTR_EL0":"=r"(t));
+  return t;
 }
 */
+
+
 int crypto_kem_enc( //524142
        unsigned char *c,
        unsigned char *key,
@@ -37,13 +38,12 @@ int crypto_kem_enc( //524142
 	unsigned char one_ec[ 1 + SYS_N/8 + (SYND_BYTES + 32) ] = {1};
 
 	//
-	//uint32_t t0 = ccnt_read();
-	//fprintf(stderr, "Error encrypt\n");
+	//uint64_t t0 = ccnt_read();
 	encrypt(c, pk, e);
-	//uint32_t t1 = ccnt_read();
+
+	//uint64_t t1 = ccnt_read();
   	//transpose128_time_count += t1-t0;
   	//transpose128_count += 1;
-
 
 	//fprintf(stderr, "Error crypto_hash_32b\n");
 	crypto_hash_32b(c + SYND_BYTES, two_e, sizeof(two_e)); 
@@ -80,8 +80,12 @@ int crypto_kem_dec( //1551611
 	const unsigned char *s = sk + 40 + IRR_BYTES + COND_BYTES;
 
 	//
+	//uint64_t t0 = ccnt_read();
 
 	ret_decrypt = decrypt(e, sk + 40, c);
+	//uint64_t t1 = ccnt_read();
+  	//transpose128_time_count += t1-t0;
+  	//transpose128_count += 1;
 
 	crypto_hash_32b(conf, two_e, sizeof(two_e)); 
 
@@ -142,7 +146,15 @@ int crypto_kem_keypair //586654955
 		for (i = 0; i < SYS_T; i++) 
 			f[i] = load_gf(rp + i*2); 
 
-		if (genpoly_gen(irr, f)) 
+		//uint64_t t0 = ccnt_read();
+	
+		int ret = genpoly_gen(irr, f);
+		
+		//uint64_t t1 = ccnt_read();
+  		//transpose128_time_count += t1-t0;
+  		//transpose128_count += 1;
+
+		if (ret == -1) 
 			continue;
 
 		for (i = 0; i < SYS_T; i++)
@@ -157,12 +169,27 @@ int crypto_kem_keypair //586654955
 		for (i = 0; i < (1 << GFBITS); i++) 
 			perm[i] = load4(rp + i*4); 
 
-		if (pk_gen(pk, skp - IRR_BYTES, perm, pi)){
+		//uint64_t t0 = ccnt_read();
+	
+		ret = pk_gen(pk, skp - IRR_BYTES, perm, pi);
+		
+		//uint64_t t1 = ccnt_read();
+  		//transpose128_time_count += t1-t0;
+  		//transpose128_count += 1;
+
+		if (ret == -1){
 			//fprintf(stderr, "Error after genpk\n");
 			continue;
 		}
 
+		//uint64_t t0 = ccnt_read();
+
 		controlbitsfrompermutation(skp, pi, GFBITS, 1 << GFBITS);
+
+		//uint64_t t1 = ccnt_read();
+  		//transpose128_time_count += t1-t0;
+  		//transpose128_count += 1;
+
 		skp += COND_BYTES;
 
 		// storing the random string s

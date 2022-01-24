@@ -29,7 +29,6 @@ static inline uint32_t ccnt_read (void)
 }
 */
 
-
 static void radix_conversions_tr(vec128 in[ GFBITS ])
 {
 	int i, j, k;
@@ -163,9 +162,13 @@ static void butterflies_tr(vec128 out[ GFBITS ], vec128 in[][ GFBITS ])
                         buf[ reversal[j+3] ] = vec128_set2x(vec128_extract(in[j/2+1][i+0], 1),
                                                             vec128_extract(in[j/2+1][i+1], 1));
                 }
+								//uint32_t t0 = ccnt_read();
 
                 transpose_64x128_sp(buf);
-
+                
+  							//uint32_t t1 = ccnt_read();
+  							//transpose128_time_count += t1-t0;
+  							//transpose128_count += 1;
 
 	
 		p2[0] = buf[32]; buf[33] = vec128_xor(buf[33], buf[32]);
@@ -246,13 +249,29 @@ static void butterflies_tr(vec128 out[ GFBITS ], vec128 in[][ GFBITS ])
 	//
 
 	for (j = 0; j < GFBITS; j++) { t[j] = (beta[0] >> j) & 1; t[j] = -t[j]; }
+	
+	//uint32_t t0, t1;
+
+	//t0 = ccnt_read();
+	
 	vec_mul(out64[1], pre[0], t);
 
+	//t1 = ccnt_read();
+  //transpose128_time_count += t1-t0;
+  //transpose128_count += 1;
 
 	for (i = 1; i < 6; i++)
 	{
 		for (j = 0; j < GFBITS; j++) { t[j] = (beta[i] >> j) & 1; t[j] = -t[j]; }
+	 	
+	 	//t0 = ccnt_read();
+
 		vec_mul(t, pre[i], t);
+
+		//t1 = ccnt_read();
+  	//transpose128_time_count += t1-t0;
+  	//transpose128_count += 1;
+		
 		vec_add(out64[1], out64[1], t);
 	}
 
