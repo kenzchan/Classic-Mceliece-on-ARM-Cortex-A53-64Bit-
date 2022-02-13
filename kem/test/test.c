@@ -219,54 +219,173 @@ void vec128_mul_new(uint64x2_t *h, uint64x2_t *f, uint64x2_t *g)
 
 // ========
 
+	// 11
 	buf[10] = vandq_u64(f[11], g[11]);
+        buf[1] = buf[10];
 
-	buf[9] = veorq_u64(vandq_u64(f[10], g[11]), vandq_u64(f[11], g[10]));
+	// 10-11
+	buf[9] = veorq_u64(vandq_u64(f[10], g[11]), 
+			vandq_u64(f[11], g[10])
+			);
+	buf[0] = buf[9];
 	
-	buf[8] = veorq_u64(vandq_u64(f[11], g[9]), veorq_u64(vandq_u64(f[10], g[10]), vandq_u64(f[9], g[11])));
+	// 9-11
+	buf[8] = veorq_u64(vandq_u64(f[10], g[10]),
+			veorq_u64(vandq_u64(f[11], g[9]),
+				vandq_u64(f[9], g[11])
+				)
+			);
+
+        buf[7] = veorq_u64(vandq_u64(f[10], g[9]),
+			vandq_u64(f[9], g[10])
+			);
+
+	// 8-11
+	buf[6] = veorq_u64(vandq_u64(f[9], g[9]),
+                        veorq_u64(vandq_u64(f[10], g[8]),
+				vandq_u64(f[8], g[10]))
+			);
+
+        buf[5] = veorq_u64(vandq_u64(f[9], g[8]),
+			vandq_u64(f[8], g[9])
+			);
+
+	buf[7] = veorq_u64(buf[7],
+			veorq_u64(vandq_u64(f[11], g[8]),
+				vandq_u64(f[8], g[11])
+				)
+			);
+
+	// 7-11
+	buf[6] = veorq_u64(buf[6],
+			veorq_u64(vandq_u64(f[11], g[7]),
+				vandq_u64(f[7], g[11])
+				)
+			);
 	
-	buf[7] = veorq_u64(veorq_u64(vandq_u64(f[11], g[8]), vandq_u64(f[10], g[9])), 
-			veorq_u64(vandq_u64(f[9], g[10]), vandq_u64(f[8], g[11])
+        
+	buf[5] = veorq_u64(buf[5],
+			veorq_u64(vandq_u64(f[10], g[7]),
+				vandq_u64(f[7], g[10])
 				)
 			);
-
-	buf[6] = veorq_u64(vandq_u64(f[11], g[7]), veorq_u64(veorq_u64(vandq_u64(f[10], g[8]), vandq_u64(f[9], g[9])), veorq_u64(vandq_u64(f[8], g[10]), vandq_u64(f[7], g[11]))));
 	
-	buf[5] = veorq_u64(veorq_u64(vandq_u64(f[11], g[6]), vandq_u64(f[10], g[7])), veorq_u64(veorq_u64(vandq_u64(f[9], g[8]), vandq_u64(f[8], g[9])), veorq_u64(vandq_u64(f[7], g[10]), vandq_u64(f[6], g[11]))));
+	buf[4] = veorq_u64(vandq_u64(f[8], g[8]),
+                        veorq_u64(vandq_u64(f[9], g[7]),
+				vandq_u64(f[7], g[9]))
+			);
+
+        buf[3] = veorq_u64(vandq_u64(f[8], g[7]),
+			vandq_u64(f[7], g[8])
+			);
+
+	// 6-11
+	buf[5] = veorq_u64(buf[5],
+			veorq_u64(vandq_u64(f[11], g[6]),
+				vandq_u64(f[6], g[11])
+				)
+			);
 	
-	buf[4] = veorq_u64(veorq_u64(vandq_u64(f[11], g[5]), veorq_u64(vandq_u64(f[10], g[6]), vandq_u64(f[9], g[7]))),
-			veorq_u64(veorq_u64(vandq_u64(f[8], g[8]), vandq_u64(f[7], g[9])), 
-				veorq_u64(vandq_u64(f[6], g[10]), vandq_u64(f[5], g[11])
-					)
+	buf[4] = veorq_u64(buf[4],
+			veorq_u64(vandq_u64(f[10], g[6]),
+				vandq_u64(f[6], g[10])
+				)
+			);
+    
+	buf[3] = veorq_u64(buf[3],
+			veorq_u64(vandq_u64(f[9], g[6]),
+				vandq_u64(f[6], g[9])
 				)
 			);
 
-	buf[3] = veorq_u64(veorq_u64(veorq_u64(vandq_u64(f[11], g[4]), vandq_u64(f[10], g[5])), veorq_u64(vandq_u64(f[9], g[6]), vandq_u64(f[8], g[7]))),
-			veorq_u64(veorq_u64(vandq_u64(f[7], g[8]), vandq_u64(f[6], g[9])),
-				veorq_u64(vandq_u64(f[5], g[10]), vandq_u64(f[4], g[11])
-					)
+	buf[2] = veorq_u64(vandq_u64(f[7], g[7]),
+                        veorq_u64(vandq_u64(f[8], g[6]),
+				vandq_u64(f[6], g[8]))
+			);
+
+	buf[1] = veorq_u64(buf[1],
+			veorq_u64(vandq_u64(f[7], g[6]), 
+				vandq_u64(f[6], g[7]))
+			);
+
+
+	// 5-9
+	buf[10] = veorq_u64(buf[10], vandq_u64(f[5], g[5]));
+	
+	buf[2] = veorq_u64(buf[2],
+			veorq_u64(vandq_u64(f[9], g[5]),
+				vandq_u64(f[5], g[9])
 				)
 			);
 
-	buf[2] = veorq_u64(vandq_u64(f[11], g[3]), 
-			veorq_u64(veorq_u64(veorq_u64(vandq_u64(f[10], g[4]), vandq_u64(f[9], g[5])), veorq_u64(vandq_u64(f[8], g[6]), vandq_u64(f[7], g[7]))),
-				veorq_u64(veorq_u64(vandq_u64(f[6], g[8]), vandq_u64(f[5], g[9])),
-					veorq_u64(vandq_u64(f[4], g[10]), vandq_u64(f[3], g[11])
-						)
-					)
+	buf[1] = veorq_u64(buf[1],
+			veorq_u64(vandq_u64(f[8], g[5]),
+				vandq_u64(f[5], g[8])
 				)
 			);
 
-	buf[1] = veorq_u64(buf[10],
-			veorq_u64(veorq_u64(veorq_u64(veorq_u64(vandq_u64(f[11], g[2]), vandq_u64(f[10], g[3])),
-						veorq_u64(vandq_u64(f[9], g[4]), vandq_u64(f[8], g[5]))), 
-					veorq_u64(veorq_u64(vandq_u64(f[7], g[6]), vandq_u64(f[6], g[7])), veorq_u64(vandq_u64(f[5], g[8]), vandq_u64(f[4], g[9])))), 
-				veorq_u64(vandq_u64(f[3], g[10]), vandq_u64(f[2], g[11])
-					)
+	// 4-9
+	buf[10] = veorq_u64(buf[10],
+			veorq_u64(vandq_u64(f[6], g[4]),
+				vandq_u64(f[4], g[6])
 				)
 			);
 
-	buf[0] = veorq_u64(buf[9],
+	buf[1] = veorq_u64(buf[1],
+			veorq_u64(vandq_u64(f[9], g[4]),
+				vandq_u64(f[4], g[9])
+				)
+			);
+
+	// 3-7
+	buf[10] = veorq_u64(buf[10],
+			veorq_u64(vandq_u64(f[7], g[3]),
+				vandq_u64(f[3], g[7])
+				)
+			);
+
+        // 2-7
+
+	// 1-6
+
+	buf[4] = veorq_u64(buf[4],
+			veorq_u64(vandq_u64(f[11], g[5]),
+				vandq_u64(f[5], g[11])
+				)
+			);
+
+	buf[3] = veorq_u64(buf[3],
+			veorq_u64(vandq_u64(f[10], g[5]),
+				vandq_u64(f[5], g[10])
+				)
+			);
+
+	buf[3] = veorq_u64(buf[3],
+			veorq_u64(vandq_u64(f[11], g[4]),
+				vandq_u64(f[4], g[11])
+				)
+			);
+
+	buf[2] = veorq_u64(buf[2],
+			veorq_u64(vandq_u64(f[10], g[4]),
+				vandq_u64(f[4], g[10])
+				)
+			);
+      
+	buf[2] = veorq_u64(buf[2],
+			veorq_u64(vandq_u64(f[11], g[3]),
+				vandq_u64(f[3], g[11])
+				)
+			);
+
+
+	buf[1] = veorq_u64(buf[1],	
+		    veorq_u64(veorq_u64(vandq_u64(f[11], g[2]), vandq_u64(f[10], g[3])),
+				veorq_u64(vandq_u64(f[3], g[10]), vandq_u64(f[2], g[11]))
+					)
+			);
+
+	buf[0] = veorq_u64(buf[0],
 			veorq_u64(vandq_u64(f[1], g[11]), veorq_u64(veorq_u64(veorq_u64(veorq_u64(vandq_u64(f[11], g[1]), vandq_u64(f[10], g[2])),
 							veorq_u64(vandq_u64(f[9], g[3]), vandq_u64(f[8], g[4]))), 
 						veorq_u64(veorq_u64(vandq_u64(f[7], g[5]), vandq_u64(f[6], g[6])), veorq_u64(vandq_u64(f[5], g[7]), vandq_u64(f[4], g[8])
@@ -279,19 +398,26 @@ void vec128_mul_new(uint64x2_t *h, uint64x2_t *f, uint64x2_t *g)
 				)
 			);
 
+
+
 	buf[10] = veorq_u64(buf[10],
-			veorq_u64(vandq_u64(f[10], g[0]), 
-				veorq_u64(veorq_u64(veorq_u64(veorq_u64(vandq_u64(f[9], g[1]), vandq_u64(f[8], g[2])),
-							veorq_u64(vandq_u64(f[7], g[3]), vandq_u64(f[6], g[4]))), 
-						veorq_u64(veorq_u64(vandq_u64(f[5], g[5]), vandq_u64(f[4], g[6])), veorq_u64(vandq_u64(f[3], g[7]), vandq_u64(f[2], g[8])
-								)
-							)
-						), 
-					veorq_u64(vandq_u64(f[1], g[9]), vandq_u64(f[0], g[10])
-						)
-					)
+			veorq_u64(vandq_u64(f[8], g[2]),
+				vandq_u64(f[2], g[8])
 				)
 			);
+
+	buf[10] = veorq_u64(buf[10],
+			veorq_u64(vandq_u64(f[9], g[1]),
+				vandq_u64(f[1], g[9])
+				)
+			);
+
+	buf[10] = veorq_u64(buf[10],
+			veorq_u64(vandq_u64(f[10], g[0]),
+				vandq_u64(f[0], g[10])
+				)
+			);
+
 
 	buf[9] = veorq_u64(buf[9],
 			veorq_u64(veorq_u64(veorq_u64(veorq_u64(vandq_u64(f[9], g[0]), vandq_u64(f[0], g[9])),
