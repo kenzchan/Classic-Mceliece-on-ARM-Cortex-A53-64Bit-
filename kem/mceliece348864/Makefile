@@ -25,11 +25,23 @@ SOURCEs = randombytes.c \
 	gf.c fft.c fft_tr.c \
 	fips202.c
 
-all: test
+all: test speed
 
 test: $(HEADERs) $(SOURCEs) test.c
 	$(CC) $(CFLAGS) -o test test.c $(SOURCEs)
 
+speed: $(HEADERs) $(SOURCEs) hal.h speed.c
+	$(CC) $(CFLAGS) -o speed hal.c speed.c $(SOURCEs)
+
 kat: $(HEADERs) $(SOURCEs) kat_kem.c
-	$(CC) $(CFLAGS) -o kat kat_kem.c $(SOURCEs)
+	$(CC) $(CFLAGS) -DKAT -DKATNUM=101 -o kat kat_kem.c $(SOURCEs)
+
+.PHONY: clean
+clean:
+	rm -f test
+	rm -f speed
+	rm -f kat
+
+
+
 

@@ -5,12 +5,16 @@
    + mods from djb: see KATNOTES
 */
 
+// don't use this file now, still building
+
 #include <stdint.h> 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "rng.h"
+#include "api.h"
+#include "nistseedexpander.h"
 #include "crypto_kem.h"
+
 
 #define KAT_SUCCESS          0
 #define KAT_FILE_OPEN_ERROR -1
