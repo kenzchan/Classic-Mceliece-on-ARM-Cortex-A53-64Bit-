@@ -6,7 +6,7 @@ CFLAGS += -O3 -march=native -mtune=native \
 	  -ftree-vectorize -Wall \
 	  "-DCRYPTO_NAMESPACE(x) = x"
 
-HEADERS = aes.h randombytes.h  \
+HEADERS = randombytes.h  \
 	  params.h api.h benes.h bm.h controlbits.h crypto_int32.h \
 	  crypto_kem.h util.h \
 	  operations.h pk_gen.h sk_gen.h \
@@ -17,7 +17,7 @@ HEADERS = aes.h randombytes.h  \
 	  fips202.h \
 	  crypto_hash.h crypto_int32.h transpose.h
 
-SOURCEs = aes.c randombytes.c \
+SOURCEs = randombytes.c \
 	operations.c pk_gen.c sk_gen.c \
 	benes.c bm.c controlbits.c \
 	decrypt.c encrypt.c \

@@ -328,102 +328,85 @@ int randombytes(uint8_t *buf, size_t n) {
 
 #else
 
-#include <assert.h>
-#include <string.h>
+/**
+ * WARNING
+ *
+ * This file generates a PREDICTABLE and NOT AT ALL RANDOM sequence of bytes.
+ *
+ * Its purpose is to support our testing suite and it MUST NOT be used in any
+ * scenario where you are expecting actual cryptography to happen.
+ */
 
-#include "aes.h"
 #include "randombytes.h"
+#include <stdint.h>
 
-typedef struct {
-    uint8_t Key[32];
-    uint8_t V[16];
-    int reseed_counter;
-} AES256_CTR_DRBG_struct;
+static uint32_t seed[32] = { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3,
+                             2, 3, 8, 4, 6, 2, 6, 4, 3, 3, 8, 3, 2, 7, 9, 5
+                           };
+static uint32_t in[12];
+static uint32_t out[8];
+static int32_t outleft = 0;
 
-static AES256_CTR_DRBG_struct DRBG_ctx;
-static void AES256_CTR_DRBG_Update(const uint8_t *provided_data, uint8_t *Key, uint8_t *V);
+#define ROTATE(x, b) (((x) << (b)) | ((x) >> (32 - (b))))
+#define MUSH(i, b) x = t[i] += (((x ^ seed[i]) + sum) ^ ROTATE(x, b));
 
-// Use whatever AES implementation you have. This uses AES from openSSL library
-//    key - 256-bit AES key
-//    ctr - a 128-bit plaintext value
-//    buffer - a 128-bit ciphertext value
-static void AES256_ECB(uint8_t *key, uint8_t *ctr, uint8_t *buffer) {
-    aes256ctx ctx;
-    aes256_ecb_keyexp(&ctx, key);
-    aes256_ecb(buffer, ctr, 1, &ctx);
-    aes256_ctx_release(&ctx);
-}
+static void surf(void) {
+    uint32_t t[12];
+    uint32_t x;
+    uint32_t sum = 0;
+    int32_t r;
+    int32_t i;
+    int32_t loop;
 
-void nist_kat_init(uint8_t *entropy_input, const uint8_t *personalization_string, int security_strength);
-void nist_kat_init(uint8_t *entropy_input, const uint8_t *personalization_string, int security_strength) {
-    uint8_t seed_material[48];
-
-    assert(security_strength == 256);
-    memcpy(seed_material, entropy_input, 48);
-    if (personalization_string) {
-        for (int i = 0; i < 48; i++) {
-            seed_material[i] ^= personalization_string[i];
+    for (i = 0; i < 12; ++i) {
+        t[i] = in[i] ^ seed[12 + i];
+    }
+    for (i = 0; i < 8; ++i) {
+        out[i] = seed[24 + i];
+    }
+    x = t[11];
+    for (loop = 0; loop < 2; ++loop) {
+        for (r = 0; r < 16; ++r) {
+            sum += 0x9e3779b9;
+            MUSH(0, 5)
+            MUSH(1, 7)
+            MUSH(2, 9)
+            MUSH(3, 13)
+            MUSH(4, 5)
+            MUSH(5, 7)
+            MUSH(6, 9)
+            MUSH(7, 13)
+            MUSH(8, 5)
+            MUSH(9, 7)
+            MUSH(10, 9)
+            MUSH(11, 13)
+        }
+        for (i = 0; i < 8; ++i) {
+            out[i] ^= t[i + 4];
         }
     }
-    memset(DRBG_ctx.Key, 0x00, 32);
-    memset(DRBG_ctx.V, 0x00, 16);
-    AES256_CTR_DRBG_Update(seed_material, DRBG_ctx.Key, DRBG_ctx.V);
-    DRBG_ctx.reseed_counter = 1;
 }
 
 int randombytes(uint8_t *buf, size_t n) {
-    uint8_t block[16];
-    int i = 0;
-
     while (n > 0) {
-        //increment V
-        for (int j = 15; j >= 0; j--) {
-            if (DRBG_ctx.V[j] == 0xff) {
-                DRBG_ctx.V[j] = 0x00;
-            } else {
-                DRBG_ctx.V[j]++;
-                break;
+        if (!outleft) {
+            if (!++in[0]) {
+                if (!++in[1]) {
+                    if (!++in[2]) {
+                        ++in[3];
+                    }
+                }
             }
+            surf();
+            outleft = 8;
         }
-        AES256_ECB(DRBG_ctx.Key, DRBG_ctx.V, block);
-        if (n > 15) {
-            memcpy(buf + i, block, 16);
-            i += 16;
-            n -= 16;
-        } else {
-            memcpy(buf + i, block, n);
-            n = 0;
-        }
+        *buf = (uint8_t) out[--outleft];
+        ++buf;
+        --n;
     }
-    AES256_CTR_DRBG_Update(NULL, DRBG_ctx.Key, DRBG_ctx.V);
-    DRBG_ctx.reseed_counter++;
     return 0;
 }
 
-static void AES256_CTR_DRBG_Update(const uint8_t *provided_data, uint8_t *Key, uint8_t *V) {
-    uint8_t temp[48];
-
-    for (int i = 0; i < 3; i++) {
-        //increment V
-        for (int j = 15; j >= 0; j--) {
-            if (V[j] == 0xff) {
-                V[j] = 0x00;
-            } else {
-                V[j]++;
-                break;
-            }
-        }
-
-        AES256_ECB(Key, V, temp + 16 * i);
-    }
-    if (provided_data != NULL) {
-        for (int i = 0; i < 48; i++) {
-            temp[i] ^= provided_data[i];
-        }
-    }
-    memcpy(Key, temp, 32);
-    memcpy(V, temp + 32, 16);
-}
 
 #endif
 
