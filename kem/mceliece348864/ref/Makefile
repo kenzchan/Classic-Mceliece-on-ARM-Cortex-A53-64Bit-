@@ -2,7 +2,7 @@ CC = gcc
 
 TEST_ITERATIONS ?= 10
 SPEED_ITERATIONS ?= 100
-KAT_ITERATIONS ?= 10
+KAT_ITERATIONS ?= 30
 
 CFLAGS  = -O3 -march=native -mtune=native \
 	  -ftree-vectorize \

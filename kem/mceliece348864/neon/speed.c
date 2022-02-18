@@ -14,6 +14,9 @@
 #endif
 
 uint64_t t0, t1;
+uint64_t keypair_total;
+uint64_t enc_total;
+uint64_t dec_total;
 uint64_t keypair_times[ITERATIONS];
 uint64_t enc_times[ITERATIONS];
 uint64_t dec_times[ITERATIONS];
@@ -49,15 +52,25 @@ int main(void){
         dec_times[i] = t1 - t0;
 
     }
+    
+    keypair_total = enc_total = dec_total = 0;
+    for(size_t i = 0; i < ITERATIONS; i++){
+        keypair_total += keypair_times[i];
+	enc_total += enc_times[i];
+	dec_total += dec_times[i];
+    }
 
 
     qsort(keypair_times, ITERATIONS, sizeof(uint64_t), cmp_uint64);
     qsort(enc_times, ITERATIONS, sizeof(uint64_t), cmp_uint64);
     qsort(dec_times, ITERATIONS, sizeof(uint64_t), cmp_uint64);
 
-    printf("keypair: %ld\n", keypair_times[ITERATIONS >> 1]);
-    printf("enc: %ld\n", enc_times[ITERATIONS >> 1]);
-    printf("dec: %ld\n", dec_times[ITERATIONS >> 1]);
+    printf("keypair\naverage: %12f\nmedian: %ld\n", 
+		    (double)(keypair_total / ITERATIONS ), keypair_times[ITERATIONS >> 1]);
+    printf("enc\naverage: %12f\nmedian: %ld\n",
+		    (double)(enc_total / ITERATIONS), enc_times[ITERATIONS >> 1]);
+    printf("dec\naverage: %12f\nmedian: %ld\n",
+		    (double)(dec_total / ITERATIONS), dec_times[ITERATIONS >> 1]);
 
 }
 
