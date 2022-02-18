@@ -1,9 +1,13 @@
 
 CC = gcc
 
+TEST_ITERATIONS ?= 10
+SPEED_ITERATIONS ?= 1000
+KAT_ITERATIONS ?= 10
 
 CFLAGS += -O3 -march=native -mtune=native \
-	  -ftree-vectorize -Wall \
+	  -ftree-vectorize \
+	  -Wall -Wextra -pedantic -Wpedantic -Wmissing-prototypes \
 	  "-DCRYPTO_NAMESPACE(x) = x"
 
 HEADERS = randombytes.h  \
@@ -28,13 +32,13 @@ SOURCEs = randombytes.c \
 all: test speed testvectors
 
 test: $(HEADERs) $(SOURCEs) test.c
-	$(CC) $(CFLAGS) -o test -DRANDOM_RANDOMBYTES test.c $(SOURCEs)
+	$(CC) $(CFLAGS) -o test test.c -DNTESTS=$(TEST_ITERATIONS) -DRANDOM_RANDOMBYTES $(SOURCEs)
 
 speed: $(HEADERs) $(SOURCEs) hal.h speed.c
-	$(CC) $(CFLAGS) -o speed -DRANDOM_RANDOMBYTES hal.c speed.c $(SOURCEs)
+	$(CC) $(CFLAGS) -o speed hal.c speed.c -DITERATIONS=$(SPEED_ITERATIONS) -DRANDOM_RANDOMBYTES $(SOURCEs)
 
 testvectors: $(HEADERs) $(SOURCEs) testvectors.c
-	$(CC) $(CFLAGS) -DKAT -o testvectors testvectors.c $(SOURCEs)
+	$(CC) $(CFLAGS) -o testvectors testvectors.c -DKAT -DKATN=$(KAT_ITERATIONS) $(SOURCEs)
 
 .PHONY: clean
 clean:

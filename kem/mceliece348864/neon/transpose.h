@@ -60,7 +60,7 @@ static inline void transpose_64x64(uint64_t * in) // 4094
 }
 */
 
-static void inline transpose_64x64(uint64x1_t * in) // 4094
+static inline void transpose_64x64(uint64x1_t * in) // 4094
 {
 	//uint32_t t0 = ccnt_read();
 

@@ -44,7 +44,7 @@ int main(void){
         printbytes(ct, CRYPTO_CIPHERTEXTBYTES);
         printbytes(key_b, CRYPTO_BYTES);
 
-	crypto_kem_dec(key_a, ct, sk);
+	crypto_kem_dec(key_a, ct, sk);        
         printbytes(key_a, CRYPTO_BYTES);
 
     }

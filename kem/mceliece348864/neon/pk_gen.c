@@ -182,7 +182,8 @@ static void composeinv(int n, uint16_t y[n], uint16_t x[n], uint16_t pi[n])
 /* return: 0 if pk is successfully generated, -1 otherwise */
 int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm, int16_t * pi)
 {
-	const int nBlocks_I = (PK_NROWS + 127) / 128;
+
+#define nBlocks_I ((PK_NROWS + 127) / 128)
 
 	int i, j, k, b;
 	int row, c;
@@ -239,7 +240,7 @@ int pk_gen(unsigned char * pk, const unsigned char * irr, uint32_t * perm, int16
 
 	// fill matrix 
 
-	de_bitslicing(list, prod);
+	de_bitslicing(list, (const vec128 (*)[GFBITS])prod);
 
 	for (i = 0; i < (1 << GFBITS); i++)
 	{	
