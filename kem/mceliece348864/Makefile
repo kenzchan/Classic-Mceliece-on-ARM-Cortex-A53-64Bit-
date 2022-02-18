@@ -1,13 +1,14 @@
 
 CC = gcc
 
+
 CFLAGS += -O3 -march=native -mtune=native \
 	  -ftree-vectorize -Wall \
-	  -DKAT -DKATNUM=10 "-DCRYPTO_NAMESPACE(x) = x"
+	  "-DCRYPTO_NAMESPACE(x) = x"
 
-HEADERS = kat_rng.h randombytes.h  \
+HEADERS = randombytes.h  \
 	  params.h api.h benes.h bm.h controlbits.h crypto_int32.h \
-	  crypto_kem.h crypto_kem_mceliece348864.h util.h \
+	  crypto_kem.h util.h \
 	  operations.h pk_gen.h sk_gen.h \
 	  decrypt.h encrypt.h \
 	  vec.h vec128.h \
@@ -16,7 +17,7 @@ HEADERS = kat_rng.h randombytes.h  \
 	  fips202.h \
 	  crypto_hash.h crypto_int32.h transpose.h
 
-SOURCEs = kat_kem.c rng.c \
+SOURCEs = randombytes.c \
 	operations.c pk_gen.c sk_gen.c \
 	benes.c bm.c controlbits.c \
 	decrypt.c encrypt.c \
@@ -24,6 +25,11 @@ SOURCEs = kat_kem.c rng.c \
 	gf.c fft.c fft_tr.c \
 	fips202.c
 
-kat: $(HEADERs) $(SOURCEs)
-	$(CC) $(CFLAGS) -o kat $(SOURCEs)
+all: test
+
+test: $(HEADERs) $(SOURCEs) test.c
+	$(CC) $(CFLAGS) -o test test.c $(SOURCEs)
+
+kat: $(HEADERs) $(SOURCEs) kat_kem.c
+	$(CC) $(CFLAGS) -o kat kat_kem.c $(SOURCEs)
 

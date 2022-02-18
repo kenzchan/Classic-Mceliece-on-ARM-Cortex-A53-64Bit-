@@ -1,1 +1,1 @@
-#include "rng.h"
+../common/randombytes.h

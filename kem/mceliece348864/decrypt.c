@@ -13,19 +13,6 @@
 
 #include <stdio.h>
 
-/*
-extern uint32_t transpose128_time_count;
-extern uint32_t transpose128_count;
-
-
-static inline uint32_t ccnt_read (void)
-{
-  uint32_t cc = 0;
-  __asm__ volatile ("mrc p15, 0, %0, c9, c13, 0":"=r" (cc));
-  return cc;
-}
-*/
-
 static void scaling(vec128 out[][GFBITS], vec128 inv[][GFBITS], const unsigned char *sk, vec128 *recv)
 {
 	int i, j;
@@ -183,12 +170,7 @@ int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *s)
 
 	fft_tr(s_priv, scaled);
 
-	//uint32_t t0 = ccnt_read();
 	bm(locator, s_priv);
-	//uint32_t t1 = ccnt_read();
-	//transpose128_time_count += t1-t0;
-	//transpose128_count += 1;
-
 
 	fft(eval, locator);
 
