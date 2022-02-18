@@ -15,16 +15,6 @@ typedef uint64_t vec;
 //extern void vec_mul_asm(vec *, const vec *, const vec *, int);
 
 
-extern uint64_t transpose128_time_count;
-extern uint64_t transpose128_count;
-
-static inline uint64_t ccnt_read()
-{
-  uint64_t t = 0;
-  asm volatile("mrs %0, PMCCNTR_EL0":"=r"(t));
-  return t;
-}
-
 /*
 static inline void vec_mul_64(vec * h, const vec * f, const vec * g)
 {
@@ -339,13 +329,7 @@ static inline void vec_mul(vec * h, const vec * ff, const vec * gg)
 		g[i] = vld1_u64(&gg[i]);
 	}
 
-	uint64_t t0 = ccnt_read();
-
 	vec_mul_64(h1, f, g);
-	
-	uint64_t t1 = ccnt_read();
-  transpose128_time_count += t1-t0;
- 	transpose128_count += 1;
 
  	for (i = 0; i < GFBITS; i++){
  		vst1_u64(&h[i], h1[i]);

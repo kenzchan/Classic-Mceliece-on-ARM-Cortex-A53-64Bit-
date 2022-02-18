@@ -23,30 +23,6 @@
 typedef uint64x2_t vec128;
 
 
-extern uint64_t transpose128_time_count;
-extern uint64_t transpose128_count;
-
-
-static inline uint64_t ccnt_read()
-{
-  uint64_t t = 0;
-  asm volatile("mrs %0, PMCCNTR_EL0":"=r"(t));
-  return t;
-}
-
-
-static void print128_num(uint64x2_t var)
-{
-    uint16_t val[8];
-    memcpy(val, &var, sizeof(val));
-    fprintf(stderr, "Numerical: %i %i %i %i %i %i %i %i \n", 
-           val[0], val[1], 
-           val[2], val[3],
-           val[4], val[5], 
-           val[6], val[7]);
-}
-
-
 
 static inline vec128 vec128_set1_16b(uint16_t a)
 {
@@ -927,13 +903,8 @@ static void vec128_mul_correct(uint64x2_t *h, uint64x2_t *f, const uint64x2_t *g
 
 static inline void vec128_mul(vec128 *h, vec128 *f, const vec128 *g)
 {
-	uint64_t t0 = ccnt_read();
 
 	vec128_mul_asm(h, f, g);
-
-	uint64_t t1 = ccnt_read();
-  transpose128_time_count += t1-t0;
- 	transpose128_count += 1;
 }
 
 
