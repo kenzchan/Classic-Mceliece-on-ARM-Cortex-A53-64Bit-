@@ -6,7 +6,7 @@ CFLAGS += -O3 -march=native -mtune=native \
 	  -ftree-vectorize -Wall \
 	  "-DCRYPTO_NAMESPACE(x) = x"
 
-HEADERS = randombytes.h  \
+HEADERS = aes.h randombytes.h  \
 	  params.h api.h benes.h bm.h controlbits.h crypto_int32.h \
 	  crypto_kem.h util.h \
 	  operations.h pk_gen.h sk_gen.h \
@@ -17,7 +17,7 @@ HEADERS = randombytes.h  \
 	  fips202.h \
 	  crypto_hash.h crypto_int32.h transpose.h
 
-SOURCEs = randombytes.c \
+SOURCEs = aes.c randombytes.c \
 	operations.c pk_gen.c sk_gen.c \
 	benes.c bm.c controlbits.c \
 	decrypt.c encrypt.c \
@@ -25,22 +25,22 @@ SOURCEs = randombytes.c \
 	gf.c fft.c fft_tr.c \
 	fips202.c
 
-all: test speed
+all: test speed testvectors
 
 test: $(HEADERs) $(SOURCEs) test.c
-	$(CC) $(CFLAGS) -o test test.c $(SOURCEs)
+	$(CC) $(CFLAGS) -o test -DRANDOM_RANDOMBYTES test.c $(SOURCEs)
 
 speed: $(HEADERs) $(SOURCEs) hal.h speed.c
-	$(CC) $(CFLAGS) -o speed hal.c speed.c $(SOURCEs)
+	$(CC) $(CFLAGS) -o speed -DRANDOM_RANDOMBYTES hal.c speed.c $(SOURCEs)
 
-kat: $(HEADERs) $(SOURCEs) kat_kem.c
-	$(CC) $(CFLAGS) -DKAT -DKATNUM=101 -o kat kat_kem.c $(SOURCEs)
+testvectors: $(HEADERs) $(SOURCEs) testvectors.c
+	$(CC) $(CFLAGS) -DKAT -o testvectors testvectors.c $(SOURCEs)
 
 .PHONY: clean
 clean:
 	rm -f test
 	rm -f speed
-	rm -f kat
+	rm -f testvectors
 
 
 

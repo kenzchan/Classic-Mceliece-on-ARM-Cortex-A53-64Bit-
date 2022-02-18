@@ -196,7 +196,7 @@ int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *s)
 	postprocess(e, error);
 
 	check_weight = weight_check(e, error);
-
+#if 0
 #ifdef KAT
   {
     int k;
@@ -206,6 +206,7 @@ int decrypt(unsigned char *e, const unsigned char *sk, const unsigned char *s)
         printf(" %d",k);
     printf("\n");
   }
+#endif
 #endif
 
 	return 1 - (check_synd & check_weight);
